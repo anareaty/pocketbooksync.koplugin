@@ -130,13 +130,39 @@ function PocketbookSync:doSync(data)
     end
 
     local book_id = bookIds[cacheKey]
+
+    local sql = [[
+            SELECT position, position_ts, favorite, favorite_ts
+            FROM books_settings
+            WHERE
+                bookid = ?
+        ]]
+
+    local stmt = pocketbookDbConn:prepare(sql)
+    local row = stmt:reset():bind(book_id):step()
+    stmt:close()
+
+    local position = nil
+    local position_ts = nil
+    local favorite = nil
+    local favorite_ts = nil
+    
+    if row ~= nil then
+        position = row[1]
+        position_ts = row[2]
+        favorite = row[3]
+        favorite_ts = row[4]
+    end
+
+
+    
     local sql = [[
             REPLACE INTO books_settings
-            (bookid, profileid, cpage, npage, completed, opentime)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (bookid, profileid, position, position_ts, cpage, npage, completed, opentime, favorite, favorite_ts)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ]]
     local stmt = pocketbookDbConn:prepare(sql)
-    stmt:reset():bind(book_id, profile_id, data.page, data.totalPages, data.completed, data.time):step()
+    stmt:reset():bind(book_id, profile_id, position, position_ts, data.page, data.totalPages, data.completed, data.time, favorite, favorite_ts):step()
     stmt:close()
 end
 
